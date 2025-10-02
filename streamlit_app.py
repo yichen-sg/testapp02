@@ -1,40 +1,68 @@
 import streamlit as st
-import base64
+from streamlit_drawable_canvas import st_canvas
 
-def get_base64_image(image_path):
-    with open(image_path, "rb") as img_file:
-        return base64.b64encode(img_file.read()).decode()
+# Set page config first
+st.set_page_config(page_title="Visible Dot", layout="centered")
 
-st.title("🎈 this is my 2nd ")
+# Initialize with very simple state
+if 'state' not in st.session_state:
+    st.session_state.state = {
+        "x": 300,  # Exact center X
+        "y": 200,  # Exact center Y
+        "dx": 1,   # Movement step
+        "running": False
+    }
 
-st.write("Great Hello World.")
+# Update position function
+def update_pos():
+    st.session_state.state["x"] += st.session_state.state["dx"]
+    # Bounce off edges
+    if st.session_state.state["x"] < 20 or st.session_state.state["x"] > 580:
+        st.session_state.state["dx"] *= -1
 
-input_result = st.text_input("pls input a value") 
+# Create simple dot drawing - explicit coordinates
+def get_dot():
+    return {
+        "version": "4.4.0",
+        "objects": [{
+            "type": "circle",
+            "left": st.session_state.state["x"] - 20,  # 40px diameter
+            "top": st.session_state.state["y"] - 20,
+            "width": 20,
+            "height": 20,
+            "radius": 10,
+            "fill": "green",  # The desired green color
+            "stroke": None,
+            "strokeWidth": 1,
+        }]
+    }
 
-st.write(input_result)
+# Controls
+st.title("VISIBLE RED DOT")
 
-local_image_path = "4.jpg"
+col1, col2 = st.columns(2)
+with col1:
+    if st.button("Start Movement"):
+        st.session_state.state["running"] = True
+with col2:
+    if st.button("Stop"):
+        st.session_state.state["running"] = False
 
-base64_image = get_base64_image(local_image_path)
-
-st.markdown(
-    f"""
-    <style>
-    .stApp {{
-        background-image: url("data:image/jpeg;base64,{base64_image}");
-        background-size: cover;
-        background-position: center;
-        background-repeat: no-repeat;
-        background-attachment: fixed;
-    }}
-    
-    /* 可选：为了让文本更清晰，可以给内容区域添加半透明背景 */
-    .stBlockContainer {{
-        background-color: rgba(255, 255, 255, 0.8);
-        padding: 2rem;
-        border-radius: 10px;
-    }}
-    </style>
-    """,
-    unsafe_allow_html=True
+# Display canvas with high contrast
+st_canvas(
+    background_color="#FFFFFF",  # Pure white background
+    height=400,
+    width=600,
+    initial_drawing=get_dot(),
+    key="canvas",
+    drawing_mode="transform",
+    display_toolbar=False
 )
+
+# Animation loop with minimal delay
+if st.session_state.state["running"]:
+    update_pos()
+    st.rerun()
+
+# Debug info
+st.write("Dot position:", st.session_state.state["x"], st.session_state.state["y"])
